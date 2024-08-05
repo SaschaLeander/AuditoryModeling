@@ -4,7 +4,7 @@
 % contact: saschamuhlinghaus@gmail.com
 
 function [stimulus, stimulus_fs] = generate_stimulus(condition_flag, tone_freq, signal_length_ms, dB_signal, varargin)
- % Input Parameters:
+   % Input Parameters:
     % condition_flag: 'forward masking', 'backward masking', 'no notch',
     % 'notch', 'frequency discrimination', 'vcv'
     % tone_freq: frequency of the tone in Hz
@@ -30,7 +30,7 @@ function [stimulus, stimulus_fs] = generate_stimulus(condition_flag, tone_freq, 
     signal = amp_signal * sin(2 * pi * tone_freq * t_signal);
 
     % Define the ramp duration in seconds
-    rampDuration = 0.01; % For example, 10 ms
+    rampDuration = 0.01; % 10 ms ramp duration
     
     % Convert the ramp duration to samples
     rampSamples = round(rampDuration * stimulus_fs);
@@ -39,14 +39,8 @@ function [stimulus, stimulus_fs] = generate_stimulus(condition_flag, tone_freq, 
     t_ramp = (0:rampSamples-1)' / rampSamples;
     ramp = 0.5 * (1 - cos(pi * t_ramp));
 
-    % Create a signal with ramp added before and after the tone
-    total_length_samples = length(signal) + 2 * rampSamples;
-    signal_with_ramp = zeros(1, total_length_samples);
-    signal_with_ramp(rampSamples+1:rampSamples+length(signal)) = signal;
-
-    % Apply the ramp to the beginning and end of the signal
-    signal_with_ramp(1:rampSamples) = signal_with_ramp(1:rampSamples) .* ramp';
-    signal_with_ramp(end-rampSamples+1:end) = signal_with_ramp(end-rampSamples+1:end) .* flip(ramp');
+    % Apply the ramp to the beginning of the signal
+    signal(1:rampSamples) = signal(1:rampSamples) .* ramp';
 
     % Apply the condition
     switch condition_flag
@@ -66,13 +60,13 @@ function [stimulus, stimulus_fs] = generate_stimulus(condition_flag, tone_freq, 
             noise = sig_bandpassnoise(1000, stimulus_fs, 0.3, dB_noise, 800);
             % Initialize the full stimulus length
             pause_duration_samples = pause_duration * stimulus_fs;
-            total_length_samples = length(noise) + round(pause_duration_samples) + length(signal_with_ramp);
+            total_length_samples = length(noise) + round(pause_duration_samples) + length(signal);
 
             stimulus = zeros(1, total_length_samples);
             % Place noise before the tone with a pause in between
             tone_start = length(noise) + pause_duration_samples + 1;
             stimulus(1:length(noise)) = noise;
-            stimulus(tone_start:tone_start + length(signal_with_ramp) - 1) = signal_with_ramp;
+            stimulus(tone_start:tone_start + length(signal) - 1) = signal;
 
             fprintf('Stimulus length in (s): %d\n', length(stimulus)/stimulus_fs);
           
@@ -92,11 +86,11 @@ function [stimulus, stimulus_fs] = generate_stimulus(condition_flag, tone_freq, 
             noise = sig_bandpassnoise(1000, stimulus_fs, 0.3, dB_noise, 800);
             % Initialize the full stimulus length
             pause_duration_samples = pause_duration * stimulus_fs;
-            total_length_samples = length(signal_with_ramp) + round(pause_duration_samples) + length(noise);
+            total_length_samples = length(signal) + round(pause_duration_samples) + length(noise);
             stimulus = zeros(1, total_length_samples);
             % Place noise after the tone with a pause in between
-            noise_start = length(signal_with_ramp) + pause_duration_samples + 1;
-            stimulus(1:length(signal_with_ramp)) = signal_with_ramp;
+            noise_start = length(signal) + pause_duration_samples + 1;
+            stimulus(1:length(signal)) = signal;
             stimulus(noise_start:noise_start + length(noise) - 1) = noise;
 
             fprintf('Stimulus length in (s): %d\n', length(stimulus)/stimulus_fs);
@@ -113,17 +107,17 @@ function [stimulus, stimulus_fs] = generate_stimulus(condition_flag, tone_freq, 
             % Generate noise signal (bandpass white noise)
             noise = sig_bandpassnoise(1000, stimulus_fs, 0.3, dB_noise, 800);
             % Ensure the tone fits within the noise duration
-            if length(signal_with_ramp) > length(noise)
+            if length(signal) > length(noise)
                 error('The tone duration exceeds the noise duration.');
             end
    
             % Random start position for the tone within the noise interval
-            max_start_index = length(noise) - length(signal_with_ramp) + 1;
+            max_start_index = length(noise) - length(signal) + 1;
             tone_start_index = randi([1, max_start_index]);
             % Initialize the stimulus with the noise
             stimulus = noise;
             % Place the tone within the noise interval
-            stimulus(tone_start_index:tone_start_index + length(signal_with_ramp) - 1) = signal_with_ramp;
+            stimulus(tone_start_index:tone_start_index + length(signal) - 1) = signal;
             
             fprintf('Stimulus length in (s): %d\n', length(stimulus)/stimulus_fs);
 
@@ -139,7 +133,7 @@ function [stimulus, stimulus_fs] = generate_stimulus(condition_flag, tone_freq, 
             % Generate noise signal (bandpass white noise)
             noise = sig_bandpassnoise(1000, stimulus_fs, 0.3, dB_noise, 1200);
             % Ensure the tone fits within the noise duration
-            if length(signal_with_ramp) > length(noise)
+            if length(signal) > length(noise)
                 error('The tone duration exceeds the noise duration.');
             end
 
@@ -147,12 +141,12 @@ function [stimulus, stimulus_fs] = generate_stimulus(condition_flag, tone_freq, 
             [b, a] = butter(4, [(tone_freq - 200) / (stimulus_fs / 2), (tone_freq + 200) / (stimulus_fs / 2)], 'stop');
             noise_filtered = filter(b, a, noise);
             % Random start position for the tone within the noise interval
-            max_start_index = length(noise_filtered) - length(signal_with_ramp) + 1;
+            max_start_index = length(noise_filtered) - length(signal) + 1;
             tone_start_index = randi([1, max_start_index]);
             % Initialize the stimulus with the filtered noise
             stimulus = noise_filtered;
             % Place the tone within the filtered noise interval
-            stimulus(tone_start_index:tone_start_index + length(signal_with_ramp) - 1) = signal_with_ramp;
+            stimulus(tone_start_index:tone_start_index + length(signal) - 1) = signal;
 
             fprintf('Stimulus length in (s): %d\n', length(stimulus)/stimulus_fs);
     
