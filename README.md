@@ -1,2 +1,2 @@
 # AudioModellingStimuli
-Tools for creating stimuli for auditory modelling
+Tools for creating, processing and analyzing audio stimuli for auditory modeling
