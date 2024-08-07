@@ -13,22 +13,21 @@ function [r_mean, ihc, ic_sout_BE, cn_sout_contra] = simulate_auditory_response(
     
     %% save output ============================================================
 
-    function manage_dataset(stimulus, r_mean, ihc, ic_sout_BE, ic_sout_BS, cn_sout_contra, filename)
+    function manage_dataset(stimulus, ic_sout_BE, filename)
         % Check if the file exists
         if isfile(filename)
             % Load the existing dataset
             load(filename, 'dataTable');
             
             % Create a new row with the current variables as cell arrays
-            newRow = {stimulus, r_mean, ihc, ic_sout_BE, ic_sout_BS, cn_sout_contra};
+            newRow = {stimulus, ic_sout_BE};
             
             % Append the new row to the existing table
-            newRowTable = cell2table(newRow, 'VariableNames', {'stimulus', 'r_mean', 'ihc', 'ic_sout_BE', 'ic_sout_BS', 'cn_sout_contra'});
+            newRowTable = cell2table(newRow, 'VariableNames', {'stimulus', 'ic_sout_BE'});
             dataTable = [dataTable; newRowTable];
         else
             % Create a new table with the given variables as cell arrays
-            dataTable = table({stimulus}, {r_mean}, {ihc}, {ic_sout_BE}, {ic_sout_BS}, {cn_sout_contra}, ...
-                              'VariableNames', {'stimulus', 'r_mean', 'ihc', 'ic_sout_BE', 'ic_sout_BS', 'cn_sout_contra'});
+            dataTable = table({stimulus}, {ic_sout_BE}, 'VariableNames', {'stimulus', 'ic_sout_BE'});
         end
         
         % Save the updated table to the file
@@ -36,8 +35,7 @@ function [r_mean, ihc, ic_sout_BE, cn_sout_contra] = simulate_auditory_response(
     end
 
     % Call the function to manage the dataset
-    %manage_dataset(stimulus, r_mean, ihc, ic_sout_BE, ic_sout_BS, cn_sout_contra, filename);
-
+    %manage_dataset(stimulus, ic_sout_BE , filename);
     
 end
 

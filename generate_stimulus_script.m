@@ -16,18 +16,16 @@ function [stimulus, stimulus_fs] = generate_stimulus(condition_flag, tone_freq, 
     nArgs = length(varargin);
     
     % Sampling rate
-    stimulus_fs = 44100; % 44.1 kHz standard sampling rate for audio
-
-    stim_length = signal_length_ms / 1000; % Convert ms to seconds
-
-    % Convert dB level to linear amplitude
-    amp_signal = 10^(dB_signal / 20);
+    stimulus_fs = 100e3; 
+    
+    % Convert ms to seconds
+    stim_length = signal_length_ms / 1000; 
     
     % Generate time vector for the signal length
     t_signal = (0:round(stim_length * stimulus_fs) - 1) / stimulus_fs;
     
     % Generate tone signal (sine wave)
-    signal = amp_signal * sin(2 * pi * tone_freq * t_signal);
+    signal = scaletodbspl(sin(2*pi*tone_freq*t_signal),dB_signal);
 
     % Define the ramp duration in seconds
     rampDuration = 0.01; % 10 ms ramp duration
@@ -35,7 +33,7 @@ function [stimulus, stimulus_fs] = generate_stimulus(condition_flag, tone_freq, 
     % Convert the ramp duration to samples
     rampSamples = round(rampDuration * stimulus_fs);
     
-    % Generate the cosine ramp
+    % Generate cosine ramp
     t_ramp = (0:rampSamples-1)' / rampSamples;
     ramp = 0.5 * (1 - cos(pi * t_ramp));
 
@@ -161,23 +159,21 @@ function [stimulus, stimulus_fs] = generate_stimulus(condition_flag, tone_freq, 
             increment = varargin{2};
 
             % Number of tones
-            n_samples = floor((end_frequency - tone_freq) / increment) + 1;
+            n_samples = ((end_frequency - tone_freq) / increment);
             % Initialize an empty array to store the tones
             tonesArray = [];
             % Define frequency for the first tone
             frequency = tone_freq;
         
-            for i = 1:n_samples
+            for i = 0:n_samples
                 % Generate tone
-                tone = sin(2 * pi * frequency * t_signal);
-                % Convert dB to amplitude (assuming full scale = 0 dBFS)
-                amplitude = 10^(dB_signal / 20);
-                % Adjust tone amplitude
-                tone = amplitude * tone;
+                tone = scaletodbspl(sin(2*pi*frequency*t_signal), dB_signal); % unramped stimulus
+              
                 % Append the generated tone to the tonesArray
                 tonesArray = [tonesArray; tone];
                 % Update frequency for the next tone
                 frequency = frequency + increment;
+                fprintf('frequency: %s\n', mat2str(frequency))
             end
             
             % return the tones
@@ -186,18 +182,20 @@ function [stimulus, stimulus_fs] = generate_stimulus(condition_flag, tone_freq, 
         
         case 'vcv'
             n = 5;
-            vcvArray = {};
+            vcv_db = dB_signal;
+            vcvArray = [];
         
             for i = 0:n-1
                 % Define location of vcv stimulus
                 file_name = strcat('vcv_samples/vcv_stimulus', int2str(i), '.wav');
                 % Read vcv file
                 [wav, Fs_wav] = audioread(file_name);
+                wav = scaletodbspl(wav, vcv_db);
+               
                 % Concatenate audio and sampling frequency into cell array
                 vcvArray = [vcvArray; {wav, Fs_wav}];
             end
             stimulus = vcvArray;
-
         otherwise
             error('Invalid condition flag. Choose ''backward masking'', ''forward masking'', ''no notch'', ''notch'', ''frequency discrimination'' or ''vcv''.');
     end
@@ -206,29 +204,31 @@ end
 %% Test function 
 % Input Parameters:
 % Change condition for generation of different test stimuli
-condition = 'backward masking';  % condition_flag: 'backward masking', 'forward masking', 'simultaneous', 'notch', 'frequency discrimination', 'vcv'
+condition = 'vcv';  % condition_flag: 'backward masking', 'forward masking', 'no notch', 'notch', 'frequency discrimination', 'vcv'
 signal_freq = 1000; % tone_freq: frequency of the tone in Hz
 signal_length_ms = 20; % signal_length_ms: length of the stimulus in (ms)
-dB_signal = 90; % dB_signal: desired decibel level of the tone
+dB_signal = 80; % dB_signal: desired decibel level of the tone
 
 db_noise = 30; % varargin1: inputs depending on the chosen condition 
 gap = 50; % varargin2: inputs depending on the chosen condition
 freq_limit = 1500; % varargin3: inputs depending on the chosen condition
 increment = 10; % varargin4: inputs depending on the chosen condition
 
-[stimulus, fs] = generate_stimulus(condition, signal_freq, signal_length_ms, dB_signal, db_noise, gap); % Generate stimulus
-sound(stimulus, fs); % Play the stimulus
+%% Use for condition 'backward masking', 'forward masking', 'no notch', 'notch'
+% [stimulus, fs] = generate_stimulus(condition, signal_freq, signal_length_ms, dB_signal, db_noise, gap); % Generate stimulus
+% sound(stimulus, fs); % Play the stimulus
 
 %% Use for condition 'frequency discrimination'
-% stimulus = generate_stimulus(condition, signal_freq, signal_length_ms, dB_signal, freq_limit, increment);
+%[stimulus, fs] = generate_stimulus(condition, signal_freq, signal_length_ms, dB_signal, freq_limit, increment);
 % for i = 1:length(stimulus(:,1))
 %     sound(stimulus(i,:),fs);
 % end
-% 
+
 %% Use for condition 'vcv'
-% for i = 1:length(stimulus)
-%     wav = stimulus{i, 1};
-%     Fs_wav = stimulus{i, 2};
-%     sound(wav, Fs_wav);
-%     pause(length(wav) / Fs_wav + 1); % Pause to allow the current sample to finish playing
-% end
+[stimulus, fs] = generate_stimulus(condition, signal_freq, signal_length_ms, dB_signal);
+for i = 1:length(stimulus)
+    wav = stimulus{i, 1};
+    Fs_wav = stimulus{i, 2};
+    sound(wav, Fs_wav);
+    pause(length(wav) / Fs_wav + 1); % Pause to allow the current sample to finish playing
+end
