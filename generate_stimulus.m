@@ -3,13 +3,14 @@
 % written by Sascha Muhlinghaus (05/08/2024)
 % contact: saschamuhlinghaus@gmail.com
 
-function [stimulus, stimulus_fs] = generate_stimulus(condition_flag, tone_freq, signal_length_ms, dB_signal, varargin)
+function [stimulus, stimulus_fs, N_samples, varargout] = generate_stimulus(condition_flag, tone_freq, signal_length_ms, dB_signal, debug_flag, varargin)
     % Input Parameters:
     % condition_flag: 'forward masking', 'backward masking', 'no notch',
     % 'notch', 'frequency discrimination', 'vcv'
     % tone_freq: frequency of the tone in Hz
     % signal_length_ms: length of the stimulus in (ms)
     % dB_signal: desired decibel level of the tone
+    % debug_flag: if true, additional debugging information will be returned
     % varargin: inputs depending on the chosen condition 
 
     % Check the number of input arguments
@@ -57,17 +58,15 @@ function [stimulus, stimulus_fs] = generate_stimulus(condition_flag, tone_freq, 
             % Generate noise signal (white noise)
             noise = sig_bandpassnoise(1000, stimulus_fs, 0.3, dB_noise, 800);
             % Initialize the full stimulus length
-            pause_duration_samples = pause_duration * stimulus_fs;
-            total_length_samples = length(noise) + round(pause_duration_samples) + length(signal);
-
+            pause_duration_samples = round(pause_duration * stimulus_fs);
+            total_length_samples = length(noise) + pause_duration_samples + length(signal);
+            % Initialize stimulus variable
             stimulus = zeros(1, total_length_samples);
             % Place noise before the tone with a pause in between
             tone_start = length(noise) + pause_duration_samples + 1;
             stimulus(1:length(noise)) = noise;
             stimulus(tone_start:tone_start + length(signal) - 1) = signal;
 
-            fprintf('Stimulus length in (s): %d\n', length(stimulus)/stimulus_fs);
-          
         case 'backward masking'
             % If flag is 'backward masking', expect 2 additional arguments
             if nArgs < 2
@@ -83,16 +82,14 @@ function [stimulus, stimulus_fs] = generate_stimulus(condition_flag, tone_freq, 
             % Generate noise signal (white noise)
             noise = sig_bandpassnoise(1000, stimulus_fs, 0.3, dB_noise, 800);
             % Initialize the full stimulus length
-            pause_duration_samples = pause_duration * stimulus_fs;
-            total_length_samples = length(signal) + round(pause_duration_samples) + length(noise);
+            pause_duration_samples = round(pause_duration * stimulus_fs);
+            total_length_samples = length(signal) + pause_duration_samples + length(noise);
             stimulus = zeros(1, total_length_samples);
             % Place noise after the tone with a pause in between
             noise_start = length(signal) + pause_duration_samples + 1;
             stimulus(1:length(signal)) = signal;
             stimulus(noise_start:noise_start + length(noise) - 1) = noise;
 
-            fprintf('Stimulus length in (s): %d\n', length(stimulus)/stimulus_fs);
-            
         case 'no notch'
             % If flag is 'no notch', expect 1 additional argument
             if nArgs < 1
@@ -116,8 +113,7 @@ function [stimulus, stimulus_fs] = generate_stimulus(condition_flag, tone_freq, 
             stimulus = noise;
             % Place the tone within the noise interval
             stimulus(tone_start_index:tone_start_index + length(signal) - 1) = signal;
-            
-            fprintf('Stimulus length in (s): %d\n', length(stimulus)/stimulus_fs);
+            stimulus = stimulus';
 
         case 'notch'
             % If flag is 'notch', expect 1 additional argument
@@ -145,8 +141,7 @@ function [stimulus, stimulus_fs] = generate_stimulus(condition_flag, tone_freq, 
             stimulus = noise_filtered;
             % Place the tone within the filtered noise interval
             stimulus(tone_start_index:tone_start_index + length(signal) - 1) = signal;
-
-            fprintf('Stimulus length in (s): %d\n', length(stimulus)/stimulus_fs);
+            stimulus = stimulus';
     
         case 'frequency discrimination'
             % If flag is 'frequency discrimination', expect 2 additional arguments
@@ -161,43 +156,66 @@ function [stimulus, stimulus_fs] = generate_stimulus(condition_flag, tone_freq, 
             % Number of tones
             n_samples = ((end_frequency - tone_freq) / increment);
             % Initialize an empty array to store the tones
-            tonesArray = [];
+            tonesArray = zeros(n_samples, length(t_signal));  % Preallocate for efficiency
             % Define frequency for the first tone
             frequency = tone_freq;
         
-            for i = 0:n_samples
+            for i = 1:n_samples
                 % Generate tone
-                tone = scaletodbspl(sin(2*pi*frequency*t_signal), dB_signal); % unramped stimulus
-              
-                % Append the generated tone to the tonesArray
-                tonesArray = [tonesArray; tone];
+                tone = scaletodbspl(sin(2*pi*frequency*t_signal), dB_signal);       
+                % Store the generated tone in the array
+                tonesArray(i, :) = tone;
                 % Update frequency for the next tone
                 frequency = frequency + increment;
-                fprintf('frequency: %s\n', mat2str(frequency))
             end
             
-            % return the tones
+            % Return the tones
             stimulus = tonesArray;
-            fprintf('Stimulus length in (s): %d\n', length(stimulus(1,:))/stimulus_fs);
-        
-        case 'vcv'
-            n = 5;
-            vcv_db = dB_signal;
-            vcvArray = [];
-        
-            for i = 0:n-1
-                % Define location of vcv stimulus
-                file_name = strcat('vcv_samples/vcv_stimulus', int2str(i), '.wav');
-                % Read vcv file
-                [wav, Fs_wav] = audioread(file_name);
-                wav = scaletodbspl(wav, vcv_db);
-               
-                % Concatenate audio and sampling frequency into cell array
-                vcvArray = [vcvArray; {wav, Fs_wav}];
-            end
-            stimulus = vcvArray;
 
+        case 'vcv'
+           
+            % Check if the input is a string
+            if ~ischar(varargin{1}) && ~isstring(varargin{1})
+                error('Input must be a string or a character array.');
+            end
+            
+            % Convert input to character array if it is a string
+            inputText = char(varargin{1}); 
+
+    % Create a temporary file path for saving the speech
+    tempWavFile = tempname + ".wav";    
+    % Create a COM server for SAPI.SpVoice
+    speaker = actxserver('SAPI.SpVoice');    
+    % Create a Speech Stream File for output
+    fileStream = actxserver('SAPI.SpFileStream');
+    % Set the output format and file location
+    fileStream.Format.Type = 'SAFT16kHz16BitMono'; % Default speech generation rate
+    invoke(fileStream, 'Open', tempWavFile, 3); % Open for writing
+    speaker.AudioOutputStream = fileStream;    
+    % Speak the text and save to the file
+    invoke(speaker, 'Speak', inputText);    
+    % Clean up
+    invoke(fileStream, 'Close');
+    delete(speaker);
+    delete(fileStream);    
+    % Read the saved WAV file
+    [audioData, originalFs] = audioread(tempWavFile);  
+    % Resample to the desired sampling rate (fs)
+    stimulus = resample(audioData, stimulus_fs, originalFs);   
+    % Adjust the amplitude 
+    stimulus = scaletodbspl(stimulus, dB_signal);
+    % Trim signal to 800ms max length
+    stimulus = stimulus(1:stimulus_fs-(stimulus_fs*.2))';
         otherwise
             error('Invalid condition flag. Choose ''backward masking'', ''forward masking'', ''no notch'', ''notch'', ''frequency discrimination'' or ''vcv''.');
     end
+
+    % Return number of stimuli
+    [N_samples, cols] = size(stimulus);
+
+    % If debugging flag is true, return the size of the stimulus
+    if debug_flag
+        varargout{1} = size(stimulus);
+    end
 end
+

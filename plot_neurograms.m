@@ -49,7 +49,7 @@ function plot_neurograms(stimulus, r_mean, ihc, ic_sout_BE, cn_sout_contra, Fs, 
     % inner hair cell response
     subplot(4, 3, 3)
     plot(t, ihc);
-    xlim([0 length(stimulus)/Fs + .05]) % .05 gives a little x-axis space
+    xlim([0 (length(stimulus)/Fs)*1.2]) %  scale x-axis by 1.2 * stimulus length
     title('Inner hair cell response')
     xlabel('Time (s)')
     ylabel('Volts')
