@@ -152,7 +152,7 @@ function [stim, fs_stim, length_stim, varargout] = generate_stimulus(condition_f
         case 'frequency discrimination'
             
             % Return tone
-            stim = scaletodbspl(sin(2*pi*tone_freq*t_signal), dB_signal);  
+            stim = signal;  
 
         case 'vcv'
            

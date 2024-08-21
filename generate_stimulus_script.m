@@ -152,7 +152,7 @@ function [stim, fs_stim, length_stim, varargout] = generate_stimulus(condition_f
         case 'frequency discrimination'
             
             % Return tone
-            stim = scaletodbspl(sin(2*pi*tone_freq*t_signal), dB_signal);  
+            stim = scaletodbspl(signal, dB_signal);  
 
         case 'vcv'
            
@@ -203,7 +203,7 @@ end
 
 %% Test function 
 % Change condition for generation of different test stimuli
-condition = 'vcv';  % condition_flag: 'backward masking', 'forward masking', 'no notch', 'notch', 'frequency discrimination', 'vcv'
+condition = 'frequency discrimination';  % condition_flag: 'backward masking', 'forward masking', 'no notch', 'notch', 'frequency discrimination', 'vcv'
 % Input parameters
 signal_freq = 1000; % tone_freq: frequency of the tone in Hz
 signal_length_ms = 20; % signal_length_ms: length of the stimulus in (ms)
@@ -215,9 +215,9 @@ vcv_string = 'a b a';
 debug_flag = false;
 
 %% Use for condition 'frequency discrimination', 'backward masking', 'forward masking', 'no notch', 'notch'
-% [stimulus, fs, length] = generate_stimulus(condition, signal_freq, signal_length_ms, dB_signal, debug_flag, db_noise, gap); % Generate stimulus
+[stimulus, fs, length] = generate_stimulus(condition, signal_freq, signal_length_ms, dB_signal, debug_flag, db_noise, gap); % Generate stimulus
 %% Use for condition 'vcv'
-[stimulus, fs, length] = generate_stimulus(condition, signal_freq, signal_length_ms, dB_signal, debug_flag, vcv_string); % Generate stimulus
+%[stimulus, fs, length] = generate_stimulus(condition, signal_freq, signal_length_ms, dB_signal, debug_flag, vcv_string); % Generate stimulus
 
 sound(stimulus, fs)
 fprintf('stimulus length in (ms): %d\n', length);

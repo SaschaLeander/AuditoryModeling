@@ -23,11 +23,11 @@ amt_mex;
 Fs = 100e3; % "model sampling frequency" [samples/sec]
 
 %% stimulus parameter =====================================================
-
-condition = 'backward masking';  % condition_flag: 'before', 'after', 'simultaneous', 'notch', 'frequency discrimination'
+flag = 'ssi';
+condition = 'frequency discrimination';  % condition_flag: 'before', 'after', 'simultaneous', 'notch', 'frequency discrimination'
 signal_freq = 1000; % tone_freq: frequency of the tone in Hz
 signal_length_ms = 20; % signal_length_ms: length of the stimulus in (ms)
-dB_signal = 75; % dB_signal: desired decibel level of the tone
+dB_signal = 70; % dB_signal: desired decibel level of the tone
 
 db_noise = 30; % varargin1: inputs depending on the chosen condition 
 gap = 50; % varargin2: inputs depending on the chosen condition
@@ -42,19 +42,19 @@ ag_fs = [125 250 500 1e3 2e3 4e3 8e3]; % audiometric frequencies
 %% define auditory pathway parameters (AN, CN, IC) ========================
 
 species = 2; % 1 = cat; 2 = human
-numCF = 5; % number of inner hair cells 
+numCF = 100; % number of inner hair cells 
 CF_range = [125 14e3]; % frequency range
 cf = audspace(CF_range(1),CF_range(2),numCF); % generate cfs
 
 % scale basilar membrane tuning, 1 = normal, > 1 = broader
-bm_ref = 3; 
-bm_degraded = 3;
+bm_ref = 1; 
+bm_degraded = 2;
 % OHC function scaling factor: 1 denotes normal function
 cohc_ref = 1; 
-cohc_degraded = 1; 
+cohc_degraded = .5; 
 % IHC function scaling factor: 1 denotes normal function
 cihc_ref = 1;
-cihc_degraded = 1;
+cihc_degraded = .5;
 
 
 fiberType = 1; % AN fiber type, 1 = L, 2 = M, 3 = H spontaneous rate, 4 = ratio defined below
@@ -65,14 +65,75 @@ numL = 5; % low spontaneous rate fibres
 BMF = 100; % default CN/IN best modulation frequency   
 
 %% run models and save data =============================================================
-limit = 20;
-stepper = 5; 
+limit = 1500;
+stepper = 10; 
 
-start_value = dB_signal; % Either dB_signal or signal_freq
+start_value = signal_freq; % Either dB_signal or signal_freq
 
 samples = abs(start_value-limit) / stepper;
 
 filename = 'test_run.mat';
+
+nsimArray_ref = [];
+nsimArray_degraded = [];
+varArray = [];
+
+status = 'REFERENCE';
+
+for i = 1:samples
+    fprintf('samples: %d\n', samples);
+    if i == 1
+        % Generate stimulus 1
+        [stimulus1,Fs_stimulus1, length_stim1] = generate_stimulus(condition, ...
+            start_value, signal_length_ms, dB_signal, debug_flag, db_noise, gap); 
+    
+        % Model auditory response 1a
+        [r_mean1a, ihc1a, ic_sout_BE1a, cn_sout_contra1a] = simulate_auditory_response(stimulus1, ...
+            Fs, cf, bm_ref, fiberType, numH, numM, numL, fiber_num, cohc_ref, cihc_ref, BMF, filename);
+        
+        % Model auditory response 1b
+        [r_mean1b, ihc1b, ic_sout_BE1b, cn_sout_contra1b] = simulate_auditory_response(stimulus1, ...
+            Fs, cf, bm_ref, fiberType, numH, numM, numL, fiber_num, cohc_ref, cihc_ref, BMF, filename);
+
+        % Plot neurograms stim 1
+        plot_neurograms(stimulus1, r_mean1a, ihc1a, ic_sout_BE1a, cn_sout_contra1a, Fs, cf);
+        
+        plot_neurograms(stimulus1, r_mean1b, ihc1b, ic_sout_BE1b, cn_sout_contra1b, Fs, cf);
+    end
+    
+    % Independent variable 
+    start_value = start_value - stepper;
+    fprintf('Tone frequency: %d\n', start_value);
+
+    % Generate stimulus 2
+    [stimulus2,Fs_stimulus2, length_stim2] = generate_stimulus(condition, ...
+        start_value, signal_length_ms, dB_signal, debug_flag, db_noise, gap); 
+    
+    % Model auditory response 2
+    [r_mean2, ihc2, ic_sout_BE2, cn_sout_contra2] = simulate_auditory_response(stimulus2, ...
+        Fs, cf, bm_ref, fiberType, numH, numM, numL, fiber_num, cohc_degraded, cihc_degraded, BMF, filename);
+    
+    if mod(i,10) == 0
+        % Plot neurogram 2
+        plot_neurograms(stimulus2, r_mean2, ihc2, ic_sout_BE2, cn_sout_contra2, Fs, cf);
+    end
+
+    nsim_score_samdif = compute_similarity(ic_sout_BE1a, ic_sout_BE2, flag);
+
+    nsim_score_samsam = compute_similarity(ic_sout_BE1a, ic_sout_BE1b, flag);
+
+    nsim_score_difsam = compute_similarity(ic_sout_BE2, ic_sout_BE1b, flag);
+
+    fprintf('Status:  %s\n', status);
+    fprintf('NSI for stimulus 1&2: %d\n', nsim_score_samdif);
+    fprintf('NSI for stimulus 1&1: %d\n', nsim_score_samsam);
+    fprintf('NSI for stimulus 2&1: %d\n', nsim_score_difsam);
+
+    nsim_score_ref = compute_similarity(ic_sout_BE1a, ic_sout_BE2,flag);
+    nsimArray_ref = [nsimArray_ref; nsim_score_ref]; 
+end
+
+status = 'DEGRADED';
 
 for i = 1:samples
     fprintf('samples: %d\n', samples);
@@ -83,48 +144,72 @@ for i = 1:samples
     
         % Model auditory response 1a
         [r_mean1a, ihc1a, ic_sout_BE1a, cn_sout_contra1a] = simulate_auditory_response(stimulus1, ...
-            Fs, cf, bm_ref, fiberType, numH, numM, numL, fiber_num, cohc_ref, cihc_ref, BMF, filename);
+            Fs, cf, bm_degraded, fiberType, numH, numM, numL, fiber_num, cohc_ref, cihc_ref, BMF, filename);
         
         % Model auditory response 1b
         [r_mean1b, ihc1b, ic_sout_BE1b, cn_sout_contra1b] = simulate_auditory_response(stimulus1, ...
-            Fs, cf, bm_ref, fiberType, numH, numM, numL, fiber_num, cohc_ref, cihc_ref, BMF, filename);
+            Fs, cf, bm_degraded, fiberType, numH, numM, numL, fiber_num, cohc_ref, cihc_ref, BMF, filename);
 
-        % Plot neurogram 1
-        plot_neurograms(stimulus1, r_mean1, ihc1, ic_sout_BE1, cn_sout_contra1, Fs, cf);
+       % Plot neurograms stim 1
+        plot_neurograms(stimulus1, r_mean1a, ihc1a, ic_sout_BE1a, cn_sout_contra1a, Fs, cf);
+        
+        plot_neurograms(stimulus1, r_mean1b, ihc1b, ic_sout_BE1b, cn_sout_contra1b, Fs, cf);
     end
+    
+    % Independent variable 
+    start_value = start_value - stepper;
+    fprintf('Tone frequency: %d\n', start_value);
 
-    dB_signal = dB_signal - stepper;
-    fprintf('dB_signal: %d\n', dB_signal);
+    varArray = [varArray; start_value]
 
     % Generate stimulus 2
     [stimulus2,Fs_stimulus2, length_stim2] = generate_stimulus(condition, ...
-        signal_freq, signal_length_ms, dB_signal, debug_flag, db_noise, gap); 
+        start_value, signal_length_ms, dB_signal, debug_flag, db_noise, gap); 
     
     % Model auditory response 2
     [r_mean2, ihc2, ic_sout_BE2, cn_sout_contra2] = simulate_auditory_response(stimulus2, ...
-        Fs, cf, bm_ref, fiberType, numH, numM, numL, fiber_num, cohc_ref, cihc_ref, BMF, filename);
+        Fs, cf, bm_degraded, fiberType, numH, numM, numL, fiber_num, cohc_ref, cihc_ref, BMF, filename);
     
-    if (i/10) == 0
+    if mod(i,10) == 0
         % Plot neurogram 2
         plot_neurograms(stimulus2, r_mean2, ihc2, ic_sout_BE2, cn_sout_contra2, Fs, cf);
     end
 
-    nsim_score_samdif = compute_nsim(ic_sout_BE1a, ic_sout_BE2);
+    nsim_score_samdif = compute_similarity(ic_sout_BE1a, ic_sout_BE2, flag);
 
-    nsim_score_samsam = compute_nsim(ic_sout_BE1a, ic_sout_BE1b);
+    nsim_score_samsam = compute_similarity(ic_sout_BE1a, ic_sout_BE1b, flag);
 
-    nsim_score_difsam = compute_nsim(ic_sout_BE2, ic_sout_BE1b);
-
+    nsim_score_difsam = compute_similarity(ic_sout_BE2, ic_sout_BE1b, flag);
+    
+    fprintf('Status:  %s\n', status);
     fprintf('NSI for stimulus 1&2: %d\n', nsim_score_samdif);
     fprintf('NSI for stimulus 1&1: %d\n', nsim_score_samsam);
     fprintf('NSI for stimulus 2&1: %d\n', nsim_score_difsam);
 
+    nsim_score_deg = compute_similarity(ic_sout_BE1a, ic_sout_BE2,flag);
+
+    nsimArray_degraded = [nsimArray_degraded; nsim_score_deg]; % Store the NSIM score in the array
+
 end
 
+figure;
+plot(varArray, nsimArray_ref, 'r-', 'LineWidth', 2); % Plot the first line in red
+hold on; % Hold on to add the second line to the same plot
+plot(varArray, nsimArray_degraded, 'b-', 'LineWidth', 2); % Plot the second line in blue
+hold off;
 
-% for i = 1:n_samples
-% 
-% 
+% Add labels and title
+xlabel('Signal Frequency');
+ylabel('NSIM score');
+title('NSIM Scores, numCF=100');
+
+% Add legend
+legend('REFERENCE', 'DEGRADED');
+
+% Show grid
+grid on;
+
+
 % 
 %     [r_mean_ref, ihc_ref, ic_sout_BE_ref, cn_sout_contra_ref] = simulate_auditory_response(stimulus, Fs, cf, bm_ref, fiberType, numH, numM, numL, fiber_num, cohc_ref, cihc_ref, BMF, filename);
 % 
