@@ -38,8 +38,11 @@ function [stim, fs_stim, length_stim, varargout] = generate_stimulus(condition_f
     t_ramp = (0:rampSamples-1)' / rampSamples;
     ramp = 0.5 * (1 - cos(pi * t_ramp));
 
-    % Apply the ramp to the beginning of the signal
+    % Apply the ramp to the beginning of the signal (ramp up)
     signal(1:rampSamples) = signal(1:rampSamples) .* ramp';
+
+    % Apply the ramp to the end of the signal (ramp down)
+    % signal(end-rampSamples+1:end) = signal(end-rampSamples+1:end) .* flipud(ramp');
 
     % Apply the condition
     switch condition_flag
@@ -133,7 +136,7 @@ function [stim, fs_stim, length_stim, varargout] = generate_stimulus(condition_f
             % Convert to dB SPL
             dB_noise = dB_noise + 10 * log10(1200);
             % Generate noise signal (bandpass white noise)
-            notched_noise = sig_notchednoise(1000, fs_stim, .3, dB_noise, .6, .2);
+            notched_noise = sig_notchednoise(1000, fs_stim, .3, dB_noise, .6, .5);
             % Ensure the tone fits within the noise duration
             if length(signal) > length(notched_noise)
                 error('The tone duration exceeds the noise duration.');
@@ -144,7 +147,6 @@ function [stim, fs_stim, length_stim, varargout] = generate_stimulus(condition_f
             tone_start_index = randi([1, max_start_index]);
             % Initialize the stimulus with the filtered noise
             stim = notched_noise;
-            plotfftreal(fftreal(notched_noise),fs_stim,100);
             % Place the tone within the filtered noise interval
             stim(tone_start_index:tone_start_index + length(signal) - 1) = signal;
             stim = stim';
@@ -203,7 +205,7 @@ end
 
 %% Test function 
 % Change condition for generation of different test stimuli
-condition = 'frequency discrimination';  % condition_flag: 'backward masking', 'forward masking', 'no notch', 'notch', 'frequency discrimination', 'vcv'
+condition = 'notch';  % condition_flag: 'backward masking', 'forward masking', 'no notch', 'notch', 'frequency discrimination', 'vcv'
 % Input parameters
 signal_freq = 1000; % tone_freq: frequency of the tone in Hz
 signal_length_ms = 20; % signal_length_ms: length of the stimulus in (ms)

@@ -38,7 +38,7 @@ function [stim, fs_stim, length_stim, varargout] = generate_stimulus(condition_f
     t_ramp = (0:rampSamples-1)' / rampSamples;
     ramp = 0.5 * (1 - cos(pi * t_ramp));
 
-    % Apply the ramp to the beginning of the signal
+    % Apply the ramp to the beginning of the signal (ramp up)
     signal(1:rampSamples) = signal(1:rampSamples) .* ramp';
 
     % Apply the condition

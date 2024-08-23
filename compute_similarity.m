@@ -1,4 +1,4 @@
-function return_metric = compute_similarity(neurogram_ref, neurogram_degraded, flag, C1, C2, C3)
+function [nsi, ssi] = compute_similarity(neurogram_ref, neurogram_degraded, flag, C1, C2, C3)
     % Compute the neurogram similarity index measure (NSIM).
     if nargin < 4
         C1 = 0.01;
@@ -19,9 +19,14 @@ function return_metric = compute_similarity(neurogram_ref, neurogram_degraded, f
     sigma_rd = cov(neurogram_ref(:), neurogram_degraded(:));
     sigma_rd = sigma_rd(1, 2);
 
-    % Check if variances are zero and handle the edge case
+    alpha = 1;
+    beta = 1;
+    gamma = 1;
+
+    % Edge case: If the variance is zero for both, return perfect similarity
     if sigma_r <= 1e-10 && sigma_d <= 1e-10
-        return_metric = 0;
+        nsi = 1; % NSIM should be 1 if both images are identical
+        ssi = 1; % SSIM should be 1 if both images are identical
         return;
     end
 
@@ -32,26 +37,29 @@ function return_metric = compute_similarity(neurogram_ref, neurogram_degraded, f
     contrast = (sigma_rd + C2) / (sqrt(sigma_r * sigma_d) + C2);
     
     % Compute structure term 
-    structure = (2*sigma_r * sigma_d + C3) / (sigma_r^(2) + sigma_d^(2) + C3);
+    structure = (2 * sigma_r * sigma_d + C3) / (sigma_r^2 + sigma_d^2 + C3);
 
     switch flag
         case 'nsi'
-            
-            return_metric = luminance * contrast;
+            nsi = luminance * contrast;
             % Clamp the NSIM score to the range [0, 1] to avoid slight deviations above 1
-            return_metric = min(max(return_metric, 0), 1);
+            nsi = min(max(nsi, 0), 1);
+            ssi = NaN;  % Return NaN as placeholder since only NSIM is computed
 
         case 'ssi'
-
-            alpha = 1;
-            beta = 1;
-            gamma = 1;
-    
-            return_metric = luminance^(alpha) * structure^(beta) * contrast^(gamma);
+            ssi = luminance^(alpha) * structure^(beta) * contrast^(gamma);
             % Clamp the SSIM score to the range [0, 1] to avoid slight deviations above 1
-            return_metric = min(max(return_metric, 0), 1);
+            ssi = min(max(ssi, 0), 1);
+            nsi = NaN;  % Return NaN as placeholder since only SSIM is computed
+        
+        case 'both'
+            % Compute and return both metrics 
+            nsi = luminance * contrast;
+            nsi = min(max(nsi, 0), 1);
+
+            ssi = luminance^(alpha) * structure^(beta) * contrast^(gamma);
+            ssi = min(max(ssi, 0), 1);
     end  
-    
 end
 
 function normalized_neurogram = normalize(neurogram)
