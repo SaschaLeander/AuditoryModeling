@@ -136,7 +136,7 @@ function [stim, fs_stim, length_stim, varargout] = generate_stimulus(condition_f
             % Convert to dB SPL
             dB_noise = dB_noise + 10 * log10(1200);
             % Generate noise signal (bandpass white noise)
-            notched_noise = sig_notchednoise(1000, fs_stim, .3, dB_noise, .6, .5);
+            notched_noise = sig_notchednoise(1000, fs_stim, .3, dB_noise, .6, .3);
             % Ensure the tone fits within the noise duration
             if length(signal) > length(notched_noise)
                 error('The tone duration exceeds the noise duration.');
@@ -205,11 +205,11 @@ end
 
 %% Test function 
 % Change condition for generation of different test stimuli
-condition = 'notch';  % condition_flag: 'backward masking', 'forward masking', 'no notch', 'notch', 'frequency discrimination', 'vcv'
+condition = 'backward masking';  % condition_flag: 'backward masking', 'forward masking', 'no notch', 'notch', 'frequency discrimination', 'vcv'
 % Input parameters
 signal_freq = 1000; % tone_freq: frequency of the tone in Hz
 signal_length_ms = 20; % signal_length_ms: length of the stimulus in (ms)
-dB_signal = 80; % dB_signal: desired decibel level of the tone
+dB_signal = 30; % dB_signal: desired decibel level of the tone
 % Condition dependent input parameters
 db_noise = 30; % varargin1: inputs depending on the chosen condition 
 gap = 50; % varargin2: inputs depending on the chosen condition
@@ -224,3 +224,27 @@ debug_flag = false;
 sound(stimulus, fs)
 fprintf('stimulus length in (ms): %d\n', length);
 
+%% define auditory pathway parameters (AN, CN, IC) ========================
+
+species = 2; % 1 = cat; 2 = human
+numCF = 10; % number of inner hair cells
+CF_range = [125 14e3]; % frequency range
+cf = audspace(CF_range(1),CF_range(2),numCF); % generate cfs
+bm = 1; % scale basilar membrane tuning, 1 = normal, > 1 = broader
+cohc = 1; % OHC function scaling factor: 1 denotes normal function
+cihc = 1; % IHC function scaling factor: 1 denotes normal function
+fiberType = 1; % AN fiber type, 1 = L, 2 = M, 3 = H spontaneous rate, 4 = ratio defined below
+fiber_num = 20;% number of fibres
+numH = 10; % high spontaneous rate fibres
+numM = 5; % medium spontaneous rate fibres
+numL = 5; % low spontaneous rate fibres
+BMF = 100; % default CN/IN best modulation frequency
+
+
+% Model auditory
+[r_mean, ihc, ic_sout_BE, cn_sout_contra] = simulate_auditory_response(stimulus, ...
+    fs, cf, bm, fiberType, numH, numM, numL, fiber_num, cohc, cihc, BMF);
+
+
+% Plot neurograms
+plot_neurograms(stimulus, r_mean, ihc, ic_sout_BE, cn_sout_contra, fs, cf);
