@@ -19,16 +19,22 @@ amt_mex;
 % https://amtoolbox.org/amt-1.5.0/doc/demos/demo_carney2015.php 
 
 %% system configuration ===================================================
-
-function run_analysis(bm, cohc, cihc, title_text)
+function run_analysis(bm_input, cohc_input, cihc_input, numCF_input, title_text, condition_input, dependent_var_input, limit_input, stepper_input)
 
     Fs = 100e3; % "model sampling frequency" [samples/sec]
     
     %% stimulus parameter =====================================================
-    condition = 'frequency discrimination';  % condition_flag: 'before', 'after', 'simultaneous', 'notch', 'frequency discrimination'
-    signal_freq = 1000; % tone_freq: frequency of the tone in Hz
+    condition = condition_input;  % condition_flag: 'forward masking', 'backward masking', 'simultaneous', 'notch', 'frequency discrimination'
     signal_length_ms = 20; % signal_length_ms: length of the stimulus in (ms)
-    dB_signal = 70; % dB_signal: desired decibel level of the tone
+    switch condition
+        case 'frequency discrimination'
+            dB_signal = 70; % dB_signal: desired decibel level of the tone
+            signal_freq = dependent_var_input; % tone_freq: frequency of the tone in Hz
+
+        otherwise 
+            dB_signal = 70; % dB_signal: desired decibel level of the tone
+            signal_freq = dependent_var_input; % tone_freq: frequency of the tone in Hz
+    end 
     
     db_noise = 30; % varargin1: inputs depending on the chosen condition 
     gap = 50; % varargin2: inputs depending on the chosen condition
@@ -43,19 +49,19 @@ function run_analysis(bm, cohc, cihc, title_text)
     %% define auditory pathway parameters (AN, CN, IC) ========================
     
     species = 2; % 1 = cat; 2 = human
-    numCF = 1000; % number of inner hair cells 
+    numCF = numCF_input; % number of inner hair cells 
     CF_range = [125 14e3]; % frequency range
     cf = audspace(CF_range(1),CF_range(2),numCF); % generate cfs
     
     % scale basilar membrane tuning, 1 = normal, > 1 = broader
     bm_ref = 1; 
-    bm_degraded = bm;
+    bm_degraded = bm_input;
     % OHC function scaling factor: 1 denotes normal function
     cohc_ref = 1; 
-    cohc_degraded = cohc; 
+    cohc_degraded = cohc_input; 
     % IHC function scaling factor: 1 denotes normal function
     cihc_ref = 1;
-    cihc_degraded = cihc;
+    cihc_degraded = cihc_input;
     
     
     fiberType = 1; % AN fiber type, 1 = L, 2 = M, 3 = H spontaneous rate, 4 = ratio defined below
@@ -66,17 +72,19 @@ function run_analysis(bm, cohc, cihc, title_text)
     BMF = 100; % default CN/IN best modulation frequency   
     
     %% run models and save data =============================================================
-    limit = 1500;
-    stepper = 10; 
+    limit = limit_input;
+    stepper = stepper_input; 
     
     % Which metric is computed
     flag = 'both';
     
     % Dependent variable 
-    dependent_var = signal_freq; % Either dB_signal or signal_freq
+    dependent_var = dependent_var_input; % Either dB_signal or signal_freq
     
     % Number of samples that will be generated
-    samples = abs(dependent_var-limit) / stepper;
+    samples = abs(abs(dependent_var-limit) / stepper);
+
+    fprintf('Number of samples: %d\n', samples);
     
     % Initilize arrays for similarity function
     nsimArray_degraded = [];
@@ -90,15 +98,21 @@ function run_analysis(bm, cohc, cihc, title_text)
     % Status refers to degraded or normal function
     status = 'REFERENCE';
     
-    competitor_stimulus = signal_freq;
+    competitor_stimulus = dependent_var;
     
     for i = 1:samples
     
         if i == 1
-            % Generate stimulus 1
-            [stimulus1,Fs_stimulus1, length_stim1] = generate_stimulus(condition, ...
-                signal_freq, signal_length_ms, dB_signal, debug_flag, db_noise, gap); 
-    
+
+            switch condition
+                case 'vcv'
+                    % Generate stimulus 1
+                    [stimulus1, Fs_stimulus1, length_stim1] = generate_stimulus(condition, ...
+                        signal_freq, signal_length_ms, dB_signal, debug_flag, vcv_string); 
+                otherwise 
+                    [stimulus1, Fs_stimulus1, length_stim1] = generate_stimulus(condition, ...
+                        signal_freq, signal_length_ms, dB_signal, debug_flag, db_noise, gap); 
+            end 
             % Model auditory response 1a
             [r_mean1a, ihc1a, ic_sout_BE1a, cn_sout_contra1a] = simulate_auditory_response(stimulus1, ...
                 Fs, cf, bm_ref, fiberType, numH, numM, numL, fiber_num, cohc_ref, cihc_ref, BMF);
@@ -110,16 +124,28 @@ function run_analysis(bm, cohc, cihc, title_text)
             % Plot neurograms stim 1
             plot_neurograms(stimulus1, r_mean1a, ihc1a, ic_sout_BE1a, cn_sout_contra1a, Fs, cf);
             plot_neurograms(stimulus1, r_mean1b, ihc1b, ic_sout_BE1b, cn_sout_contra1b, Fs, cf);
+
+            [nsim_score_ref, ssim_score_ref] = compute_similarity(ic_sout_BE1a, ic_sout_BE1b, flag);
+            nsimArray_ref = [nsimArray_ref; nsim_score_ref]; 
+            ssimArray_ref = [ssimArray_ref; ssim_score_ref]; 
+        
+            manage_data(i, dB_signal, dependent_var, cihc_ref, cohc_ref, bm_ref, condition, ...
+                competitor_stimulus, nsim_score_ref, ssim_score_ref);
         end
         
         % Independent variable 
         dependent_var = dependent_var + stepper;
         fprintf('Tone frequency: %d\n', dependent_var);
-    
-        % Generate stimulus 2
-        [stimulus2,Fs_stimulus2, length_stim2] = generate_stimulus(condition, ...
-            dependent_var, signal_length_ms, dB_signal, debug_flag, db_noise, gap); 
         
+        % Generate stimulus 2
+        switch condition
+                case 'vcv'
+                    [stimulus2, Fs_stimulus1, length_stim1] = generate_stimulus(condition, ...
+                        signal_freq, signal_length_ms, dB_signal, debug_flag, vcv_string); 
+                otherwise 
+                    [stimulus2, Fs_stimulus1, length_stim1] = generate_stimulus(condition, ...
+                        signal_freq, signal_length_ms, dB_signal, debug_flag, db_noise, gap);
+        end 
         % Model auditory response 2
         [r_mean2, ihc2, ic_sout_BE2, cn_sout_contra2] = simulate_auditory_response(stimulus2, ...
             Fs, cf, bm_ref, fiberType, numH, numM, numL, fiber_num, cohc_degraded, cihc_degraded, BMF);
@@ -141,21 +167,34 @@ function run_analysis(bm, cohc, cihc, title_text)
        [nsim_score_ref, ssim_score_ref] = compute_similarity(ic_sout_BE1a, ic_sout_BE2,flag);
        nsimArray_ref = [nsimArray_ref; nsim_score_ref]; 
        ssimArray_ref = [ssimArray_ref; ssim_score_ref]; 
-    
-       manage_data(i, dB_signal, dependent_var, cihc_ref, cohc_ref, bm_ref, condition, ...
-           competitor_stimulus, nsim_score_ref, ssim_score_ref);
+
+       switch condition
+           case 'frequency discrimination'
+               manage_data(i, dB_signal, dependent_var, cihc_ref, cohc_ref, bm_ref, condition, ...
+                   competitor_stimulus, nsim_score_ref, ssim_score_ref);
+               
+           otherwise 
+               manage_data(i, dependent_var, signal_freq, cihc_ref, cohc_ref, bm_ref, condition, ...
+                   competitor_stimulus, nsim_score_ref, ssim_score_ref);
+       end
     end
     
     % Dependent variable 
-    dependent_var = signal_freq; % Either dB_signal or signal_freq
+    dependent_var = dependent_var; % Either dB_signal or signal_freq
     status = 'DEGRADED';
     
     for j = 1:samples
     
         if j == 1
-            % Generate stimulus 1
-            [stimulus1,Fs_stimulus1, length_stim1] = generate_stimulus(condition, ...
-                signal_freq, signal_length_ms, dB_signal, debug_flag, db_noise, gap); 
+            switch condition
+                case 'vcv'
+                    % Generate stimulus 1
+                    [stimulus1, Fs_stimulus1, length_stim1] = generate_stimulus(condition, ...
+                        signal_freq, signal_length_ms, dB_signal, debug_flag, vcv_string); 
+                otherwise 
+                    [stimulus1, Fs_stimulus1, length_stim1] = generate_stimulus(condition, ...
+                        signal_freq, signal_length_ms, dB_signal, debug_flag, db_noise, gap); 
+            end 
         
             % Model auditory response 1a
             [r_mean1a, ihc1a, ic_sout_BE1a, cn_sout_contra1a] = simulate_auditory_response(stimulus1, ...
@@ -166,9 +205,17 @@ function run_analysis(bm, cohc, cihc, title_text)
                 Fs, cf, bm_degraded, fiberType, numH, numM, numL, fiber_num, cohc_degraded, cihc_degraded, BMF);
     
            % Plot neurograms stim 1
-            plot_neurograms(stimulus1, r_mean1a, ihc1a, ic_sout_BE1a, cn_sout_contra1a, Fs, cf);
-            
+            plot_neurograms(stimulus1, r_mean1a, ihc1a, ic_sout_BE1a, cn_sout_contra1a, Fs, cf);    
             plot_neurograms(stimulus1, r_mean1b, ihc1b, ic_sout_BE1b, cn_sout_contra1b, Fs, cf);
+
+            [nsim_score_deg, ssim_score_deg] = compute_similarity(ic_sout_BE1a, ic_sout_BE1b, flag);
+            nsimArray_degraded = [nsimArray_degraded; nsim_score_deg]; % Store the NSIM score in the array
+            ssimArray_degraded = [ssimArray_degraded; ssim_score_deg]; % Store the SSIM score in the array
+
+            manage_data(i+j, dB_signal, dependent_var, cihc_degraded, cohc_degraded, ...
+                bm_degraded, condition, competitor_stimulus, nsim_score_deg, ssim_score_deg);
+
+            varArray = [varArray; dependent_var];
         end
         
         % Independent variable 
@@ -177,9 +224,15 @@ function run_analysis(bm, cohc, cihc, title_text)
         varArray = [varArray; dependent_var];
     
         % Generate stimulus 2
-        [stimulus2,Fs_stimulus2, length_stim2] = generate_stimulus(condition, ...
-            dependent_var, signal_length_ms, dB_signal, debug_flag, db_noise, gap); 
-        
+        switch condition
+            case 'vcv'
+                % Generate stimulus 1
+                [stimulus2, Fs_stimulus1, length_stim1] = generate_stimulus(condition, ...
+                    signal_freq, signal_length_ms, dB_signal, debug_flag, vcv_string);
+            otherwise
+                [stimulus2, Fs_stimulus1, length_stim1] = generate_stimulus(condition, ...
+                    signal_freq, signal_length_ms, dB_signal, debug_flag, db_noise, gap);
+        end
         % Model auditory response 2
         [r_mean2, ihc2, ic_sout_BE2, cn_sout_contra2] = simulate_auditory_response(stimulus2, ...
             Fs, cf, bm_degraded, fiberType, numH, numM, numL, fiber_num, cohc_ref, cihc_ref, BMF);
@@ -201,10 +254,16 @@ function run_analysis(bm, cohc, cihc, title_text)
         [nsim_score_deg, ssim_score_deg] = compute_similarity(ic_sout_BE1a, ic_sout_BE2,flag);
         nsimArray_degraded = [nsimArray_degraded; nsim_score_deg]; % Store the NSIM score in the array
         ssimArray_degraded = [ssimArray_degraded; ssim_score_deg]; % Store the SSIM score in the array
-    
-        manage_data(i+j, dB_signal, dependent_var, cihc_degraded, cohc_degraded, ...
-            bm_degraded, condition, competitor_stimulus, nsim_score_deg, ssim_score_deg);
-    
+        
+        switch condition
+            case 'frequency discrimination'
+                manage_data(i+j, dB_signal, dependent_var, cihc_degraded, cohc_degraded, ...
+                bm_degraded, condition, competitor_stimulus, nsim_score_deg, ssim_score_deg);
+
+            otherwise
+                manage_data(i+j, dependent_var, signal_freq , cihc_degraded, cohc_degraded, ...
+                bm_degraded, condition, competitor_stimulus, nsim_score_deg, ssim_score_deg);
+        end 
     end
     
     figure;
@@ -234,22 +293,27 @@ bm = 3;
 cihc = 1;
 cohc = 1;
 title = 'Neurogram Similarity, numCF=1000, BM = 3';
-run_analysis(bm, cihc, cohc, title)
+condition = 'backward masking';
+dependent_variable = 90;
+num_cf = 1000;
+limit = 30;
+stepper = -5;
+run_analysis(bm, cihc, cohc, num_cf, title, condition, dependent_variable, limit, stepper);
 
 bm = 1;
 cihc = .3;
 cohc = 1;
 title = 'Neurogram Similarity, numCF=1000, cihc = .3';
-run_analysis(bm, cihc, cohc, title)
+run_analysis(bm, cihc, cohc, num_cf,title, condition, dependent_variable, limit, stepper);
 
 bm = 1;
 cihc = 1;
 cohc = .3;
 title = 'Neurogram Similarity, numCF=1000, cohc = .3';
-run_analysis(bm, cihc, cohc, title)
+run_analysis(bm, cihc, cohc, num_cf,title, condition, dependent_variable, limit, stepper);
 
 bm = 3;
 cihc = .3;
 cohc = .3;
 title = 'Neurogram Similarity, numCF=1000, full impairment bm = 3, cihc = .3, cohc = .3';
-run_analysis(bm, cihc, cohc, title)
+run_analysis(bm, cihc, cohc, num_cf, title, condition, dependent_variable, limit, stepper);
