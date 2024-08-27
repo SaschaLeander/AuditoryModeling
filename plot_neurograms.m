@@ -1,3 +1,8 @@
+%% Function plots auditory response =======================
+
+% written by Sam Jones (30/07/2024)
+% contact: saschamuhlinghaus@gmail.com
+
 function plot_neurograms(stimulus, r_mean, ihc, ic_sout_BE, cn_sout_contra, Fs, cf)
 
     % re-size matrices, accounting for zero-padding within the model

@@ -41,6 +41,9 @@ function [stim, fs_stim, length_stim, varargout] = generate_stimulus(condition_f
     % Apply the ramp to the beginning of the signal (ramp up)
     signal(1:rampSamples) = signal(1:rampSamples) .* ramp';
 
+    % Apply the ramp to the end of the signal (ramp down)
+    % signal(end-rampSamples+1:end) = signal(end-rampSamples+1:end) .* flipud(ramp');
+
     % Apply the condition
     switch condition_flag
         case 'forward masking'
@@ -55,6 +58,7 @@ function [stim, fs_stim, length_stim, varargout] = generate_stimulus(condition_f
             dB_noise = varargin{1};
             % Convert to dB SPL
             dB_noise = dB_noise + 10 * log10(800);
+            fprintf('noise in dB SPL: %d\n', dB_noise);
             % Duration between noise and stimulus 
             pause_duration = varargin{2}/1000;
             % Generate noise signal (white noise)
@@ -81,6 +85,7 @@ function [stim, fs_stim, length_stim, varargout] = generate_stimulus(condition_f
             dB_noise = varargin{1};
             % Convert to dB SPL
             dB_noise = dB_noise + 10 * log10(800);
+            fprintf('noise in dB SPL: %d\n', dB_noise);
             % Duration between noise and stimulus 
             pause_duration = varargin{2}/1000;
             % Generate noise signal (white noise)
@@ -105,18 +110,17 @@ function [stim, fs_stim, length_stim, varargout] = generate_stimulus(condition_f
             dB_noise = varargin{1};
             % Convert to dB SPL
             dB_noise = dB_noise + 10 * log10(800);
+            fprintf('noise in dB SPL: %d\n', dB_noise);
             % Generate noise signal (bandpass white noise)
             noise = sig_bandpassnoise(1000, fs_stim, 0.3, dB_noise, 800);
             % Ensure the tone fits within the noise duration
             if length(signal) > length(noise)
                 error('The tone duration exceeds the noise duration.');
             end
-   
-            % Random start position for the tone within the noise interval
-            max_start_index = length(noise) - length(signal) + 1;
-            tone_start_index = randi([1, max_start_index]);
+            
             % Initialize the stimulus with the noise
             stim = noise;
+            tone_start_index = length(stim)/2;
             % Place the tone within the noise interval
             stim(tone_start_index:tone_start_index + length(signal) - 1) = signal;
             stim = stim';
@@ -132,19 +136,17 @@ function [stim, fs_stim, length_stim, varargout] = generate_stimulus(condition_f
             dB_noise = varargin{1};
             % Convert to dB SPL
             dB_noise = dB_noise + 10 * log10(1200);
+            fprintf('noise in dB SPL: %d\n', dB_noise);
             % Generate noise signal (bandpass white noise)
-            notched_noise = sig_notchednoise(1000, fs_stim, 1, dB_noise, .6, .2);
+            notched_noise = sig_notchednoise(signal_freq, fs_stim, .3, dB_noise, .6, 0.2);
             % Ensure the tone fits within the noise duration
             if length(signal) > length(notched_noise)
                 error('The tone duration exceeds the noise duration.');
             end
 
-            % Random start position for the tone within the noise interval
-            max_start_index = length(notched_noise) - length(signal) + 1;
-            tone_start_index = randi([1, max_start_index]);
             % Initialize the stimulus with the filtered noise
             stim = notched_noise;
-            plotfftreal(fftreal(notched_noise),fs_stim,100);
+            tone_start_index = length(stim)/2;
             % Place the tone within the filtered noise interval
             stim(tone_start_index:tone_start_index + length(signal) - 1) = signal;
             stim = stim';

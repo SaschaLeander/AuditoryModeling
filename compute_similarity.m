@@ -1,3 +1,8 @@
+%% Function computes similarity between two neurograms =======================
+
+% written by Sam Jones & Sascha Muhlinghaus (12/08/2024)
+% contact: saschamuhlinghaus@gmail.com
+
 function [nsi, ssi] = compute_similarity(neurogram_ref, neurogram_degraded, flag, C1, C2, C3)
     % Compute the neurogram similarity index measure (NSIM).
     if nargin < 4

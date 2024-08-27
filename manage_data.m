@@ -1,3 +1,8 @@
+%% Function stores results and stimulus parameters from neurogram similarity comparison =======================
+
+% written by Sascha Muhlinghaus (16/08/2024)
+% contact: saschamuhlinghaus@gmail.com
+
 function manage_data(index, intensity, frequency, ihc, ohc, bm, task, competitor, nsim, ssim)
     % Define the filename
     filename = 'Test_AuditoryData.csv';
@@ -28,19 +33,4 @@ function manage_data(index, intensity, frequency, ihc, ohc, bm, task, competitor
     % Write the table to the file
     writetable(data, filename);
 end
-
-% Call the function to manage the dataset
-
-% index = 1;
-% stimulus = [1.2, 2.3, 3.4];
-% ihc = 1;
-% ohc = 2;
-% bm = 3;
-% task = 'classification';
-% target = 1;
-% competitor_index = 2;
-% nsim = 0.89;
-% ssim = 0.9;
-% 
-% manage_data(index, stimulus, ihc, ohc, bm, task, target, competitor_index, nsim, ssim);
 
