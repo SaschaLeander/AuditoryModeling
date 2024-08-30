@@ -6,7 +6,7 @@ Tools for creating, processing and analyzing audio stimuli for auditory modeling
 --> generate_stimulus.m is called in run_model.m  
 
 TODO (30/08/2024): 
-- comment run_model.m and rund_modelv2.m (Sascha)
+- comment run_model.m and run_modelv2.m (Sascha will do soon)
 - implement IOU for mean rate plots (add legend in plot & append to csv data file)
 - add sum of spikes to csv file
 - compute NSI/SSIM accross layers (AN/CN)
