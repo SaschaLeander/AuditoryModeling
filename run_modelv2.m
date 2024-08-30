@@ -206,7 +206,7 @@ end
 bm = 3;
 cohc = 1;
 cihc = 1;
-num_cf = 100;
+num_cf = 50;
 condition = 'frequency discrimination';
 dependent_variable = 1000;
 limit_dependent_var = 1500;

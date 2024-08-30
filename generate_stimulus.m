@@ -1,17 +1,34 @@
-%% function generates stimuli for IMAP test battery =================================================================================
+%% function generates stimuli according IMAP test battery =================================================================================
 
-% written by Sascha Muhlinghaus (05/08/2024)
+% Author Sascha Muhlinghaus
 % contact: saschamuhlinghaus@gmail.com
 
 function [stim, fs_stim, length_stim, varargout] = generate_stimulus(condition_flag, tone_freq, signal_length_ms, dB_signal, debug_flag, varargin)
-    % Input Parameters:
-    % condition_flag: 'forward masking', 'backward masking', 'no notch',
-    % 'notch', 'frequency discrimination', 'vcv'
-    % tone_freq: frequency of the tone in Hz
-    % signal_length_ms: length of the stimulus in (ms)
-    % dB_signal: desired decibel level of the tone
-    % debug_flag: if true, additional debugging information will be returned
-    % varargin: inputs depending on the chosen condition 
+
+    % GENERATE_STIMULUS generates a stimulus as proposed by the IMAP test
+    % battery see:
+    %       
+    %       (Barry JG, Ferguson MA, Moore DR. Making sense of listening: 
+    %       the IMAP test battery. J Vis Exp. 2010 Oct 11;(44):2139. 
+    %       doi: 10.3791/2139. PMID: 20972412; PMCID: PMC3185620.
+    %
+    %   Usage: manage_data(index, intensity, frequency, ihc, ohc, bm, task, competitor, nsim, ssim)
+    %
+    %   Input parameters:
+    %       condition_flag:     tasks from the IMAP battery ('forward masking', 'backward masking', 'no notch', 'notch', 'frequency discrimination', 'vcv')
+    %       tone_freq:          stimulus tone frequency (dB SPL)
+    %       signal_length_ms:   length of stimulus (ms)
+    %       dB_signal:          stimulus level (dB SPL)
+    %       debug_flag:         True or False (bool) gives additional information
+    %
+    %       varargin: 
+    %
+    %       'forward masking'(2):   dB_noise (level of background noise), pause_duration (duration between signal and noise (ms))
+    %       'backward masking'(2):  dB_noise (level of background noise), pause_duration (duration between signal and noise (ms))
+    %       'no notch'(1):          dB_noise (level of background noise)
+    %       'notch'(1):             dB_noise (level of background noise)  
+    %       'freqency disc.'(0):    
+    %       'notch'(2):             vcv_string (consonant or vowel), dB_noise (level of background noise) 
 
     % Check the number of input arguments
     nArgs = length(varargin);

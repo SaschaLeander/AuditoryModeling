@@ -1,6 +1,6 @@
 %% Function generates stimuli for IMAP test battery =======================
 
-% written by Sascha Muhlinghaus (05/08/2024)
+% written by Sascha Muhlinghaus 
 % contact: saschamuhlinghaus@gmail.com
 
 function [stim, fs_stim, length_stim, varargout] = generate_stimulus(condition_flag, tone_freq, signal_length_ms, dB_signal, debug_flag, varargin)
@@ -58,6 +58,7 @@ function [stim, fs_stim, length_stim, varargout] = generate_stimulus(condition_f
             dB_noise = varargin{1};
             % Convert to dB SPL
             dB_noise = dB_noise + 10 * log10(800);
+            fprintf('noise in dB SPL: %d\n', dB_noise);
             % Duration between noise and stimulus 
             pause_duration = varargin{2}/1000;
             % Generate noise signal (white noise)
@@ -83,11 +84,12 @@ function [stim, fs_stim, length_stim, varargout] = generate_stimulus(condition_f
             % dB level of noise
             dB_noise = varargin{1};
             % Convert to dB SPL
-            dB_noise = dB_noise + 10 * log10(800);
+            dB_noise = dB_noise + (10 * log10(800));
+            fprintf('noise in dB SPL: %d\n', dB_noise);
             % Duration between noise and stimulus 
             pause_duration = varargin{2}/1000;
             % Generate noise signal (white noise)
-            noise = sig_bandpassnoise(1000, fs_stim, 0.3, dB_noise, 800);
+            noise = sig_bandpassnoise(1000, fs_stim, 0.3, 30, 800);
             % Initialize the full stimulus length
             pause_duration_samples = round(pause_duration * fs_stim);
             total_length_samples = length(signal) + pause_duration_samples + length(noise);
@@ -108,18 +110,17 @@ function [stim, fs_stim, length_stim, varargout] = generate_stimulus(condition_f
             dB_noise = varargin{1};
             % Convert to dB SPL
             dB_noise = dB_noise + 10 * log10(800);
+            fprintf('noise in dB SPL: %d\n', dB_noise);
             % Generate noise signal (bandpass white noise)
             noise = sig_bandpassnoise(1000, fs_stim, 0.3, dB_noise, 800);
             % Ensure the tone fits within the noise duration
             if length(signal) > length(noise)
                 error('The tone duration exceeds the noise duration.');
             end
-   
-            % Random start position for the tone within the noise interval
-            max_start_index = length(noise) - length(signal) + 1;
-            tone_start_index = randi([1, max_start_index]);
+            
             % Initialize the stimulus with the noise
             stim = noise;
+            tone_start_index = length(stim)/2;
             % Place the tone within the noise interval
             stim(tone_start_index:tone_start_index + length(signal) - 1) = signal;
             stim = stim';
@@ -134,19 +135,18 @@ function [stim, fs_stim, length_stim, varargout] = generate_stimulus(condition_f
             % dB level of noise
             dB_noise = varargin{1};
             % Convert to dB SPL
-            dB_noise = dB_noise + 10 * log10(1200);
+            dB_noise = dB_noise + (10 * log10(1200));
+            fprintf('noise in dB SPL: %d\n', dB_noise);
             % Generate noise signal (bandpass white noise)
-            notched_noise = sig_notchednoise(1000, fs_stim, .3, dB_noise, .6, .3);
+            notched_noise = sig_notchednoise(signal_freq, fs_stim, .3, dB_noise, 1.2, 0.2);
             % Ensure the tone fits within the noise duration
             if length(signal) > length(notched_noise)
                 error('The tone duration exceeds the noise duration.');
             end
 
-            % Random start position for the tone within the noise interval
-            max_start_index = length(notched_noise) - length(signal) + 1;
-            tone_start_index = randi([1, max_start_index]);
             % Initialize the stimulus with the filtered noise
             stim = notched_noise;
+            tone_start_index = length(stim)/2;
             % Place the tone within the filtered noise interval
             stim(tone_start_index:tone_start_index + length(signal) - 1) = signal;
             stim = stim';
@@ -154,7 +154,7 @@ function [stim, fs_stim, length_stim, varargout] = generate_stimulus(condition_f
         case 'frequency discrimination'
             
             % Return tone
-            stim = scaletodbspl(signal, dB_signal);  
+            stim = signal;  
 
         case 'vcv'
            
@@ -205,21 +205,21 @@ end
 
 %% Test function 
 % Change condition for generation of different test stimuli
-condition = 'backward masking';  % condition_flag: 'backward masking', 'forward masking', 'no notch', 'notch', 'frequency discrimination', 'vcv'
+condition = 'vcv';  % condition_flag: 'backward masking', 'forward masking', 'no notch', 'notch', 'frequency discrimination', 'vcv'
 % Input parameters
 signal_freq = 1000; % tone_freq: frequency of the tone in Hz
 signal_length_ms = 20; % signal_length_ms: length of the stimulus in (ms)
-dB_signal = 30; % dB_signal: desired decibel level of the tone
+dB_signal = 75; % dB_signal: desired decibel level of the tone
 % Condition dependent input parameters
 db_noise = 30; % varargin1: inputs depending on the chosen condition 
 gap = 50; % varargin2: inputs depending on the chosen condition
-vcv_string = 'a b a';
+vcv_string = 'a g a';
 debug_flag = false;
 
 %% Use for condition 'frequency discrimination', 'backward masking', 'forward masking', 'no notch', 'notch'
-[stimulus, fs, length] = generate_stimulus(condition, signal_freq, signal_length_ms, dB_signal, debug_flag, db_noise, gap); % Generate stimulus
+% [stimulus, fs, length] = generate_stimulus(condition, signal_freq, signal_length_ms, dB_signal, debug_flag, db_noise, gap); % Generate stimulus
 %% Use for condition 'vcv'
-%[stimulus, fs, length] = generate_stimulus(condition, signal_freq, signal_length_ms, dB_signal, debug_flag, vcv_string); % Generate stimulus
+[stimulus, fs, length] = generate_stimulus(condition, signal_freq, signal_length_ms, dB_signal, debug_flag, vcv_string); % Generate stimulus
 
 sound(stimulus, fs)
 fprintf('stimulus length in (ms): %d\n', length);

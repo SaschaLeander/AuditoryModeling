@@ -4,6 +4,25 @@
 % contact: saschamuhlinghaus@gmail.com
 
 function [nsi, ssi] = compute_similarity(neurogram_ref, neurogram_degraded, flag, C1, C2, C3)
+
+    % COMPUTE_SIMILARITY returns the similarity measures SSIM and NSIM for
+    % two neurograms
+        %
+        %   Usage: compute_similarity(neurogram_ref, neurogram_degraded, flag, C1, C2, C3)
+        %
+        %   Input parameters:
+        %       neurogram_ref:          neurogram output with normal cochelear parameters         
+        %       neurogram_degraded:     neurogram output with degraded cochelear parameters
+        %       flag:                   return 'ssi', 'nsi' or 'both' (string)
+        %       C1:                     parameters C1 for luminance (float)
+        %       C2:                     parameter C2 for contrast (float)
+        %       C3:                     parameter C3 for structure (float)
+        %   
+        %   Output parameters:
+        %       nsi:    Neurogram Similarity Index (0-1)
+        %       ssi:    Structural Similarity Index (0-1)
+
+        
     % Compute the neurogram similarity index measure (NSIM).
     if nargin < 4
         C1 = 0.01;
