@@ -1,6 +1,7 @@
-%% Script runs stimulus, generation, zilany2014, carney2015 and stores neurogram similarity ==================================================================
+%% Script runs stimulus generation, zilany2014, carney2015, plots neurograms and stores neurogram similarity ==================================================================
 
-% code written by Sam Jones and Sascha Muhlinghaus
+% Author: Sascha Muhlinghaus
+% contact: saschamuhlinghaus@gmail.com
 
 %% set path, start modified amt ===========================================
 
@@ -18,9 +19,28 @@ amt_mex;
 % demo_carney2015; % run and compare to link below
 % https://amtoolbox.org/amt-1.5.0/doc/demos/demo_carney2015.php 
 
-%% system configuration ===================================================
+%% Function integrates generate_function(), simulate_auditory_reponse(), plot_neurograms(), plot_neurogram_comparison(), manage_data() 
+%% and runs the analysis for one set of cochlear parameters 
+
 function [nsimArray, ssimArray, varArray] = run_analysis(numCF_input, condition_input, dependent_var_input, limit_input, stepper_input, status_input, varargin)
 
+    % RUN_ANALYSIS returns neurogram similarity measures, plots and stores data
+    % 
+    %   Usage: [nsimArray, ssimArray, varArray] = run_analysis(numCF_input, condition_input, dependent_var_input, limit_input, stepper_input, status_input, varargin)
+    %
+    %   Input parameters:
+    %       numCF_input:            number of auditory nerve fibres
+    %       condition_input:        IMAP task
+    %       dependent_var_input:    start value for dependent var (tonefrequency/dB SPL level)
+    %       limit_input:            limit of dependent variable
+    %       stepper_input:          rate of change for dependent var
+    %       status_input:           normal or altered cochlear parameters
+    %
+    %   Output parameters:
+    %       nsimArray:              neurogram similarity index values [0 - 1]
+    %       ssimArray:              neurogram similarity index values [0 - 1]
+    %       varArray:               dependent var values 
+    
     Fs = 100e3; % "model sampling frequency" [samples/sec]
     
     %% stimulus params =====================================================
@@ -173,25 +193,33 @@ end
 
 
 %% Call function ==========================================================
-% bm_params = [3,1,1,3];
-% cihc_params = [1,0.3,1,0.3];
-% cohc_params = [1,1,0.3,0.3];
-% 
-% 
-% titles = {
-%     ['Neurogram Similarity, numCF=', num_cf ,', BM = 3'], ...
-%     ['Neurogram Similarity, numCF=', num_cf ,', cihc = .3'], ...
-%     ['Neurogram Similarity, numCF=', num_cf ,', cohc = .3'], ...
-%     ['Neurogram Similarity, numCF=', num_cf ,', full impairment bm = 3, cihc = .3, cohc = .3']};
-% 
-% condition_params = {'frequency discrimination', 'vcv'};
-% 
-% limit_dependent_var = [1500, 30];
-% change_rate_dep_var = [10, -5];
-% dependent_variable = [1000, 80];
 
-function wrapper(bm, cihc, cohc, num_cf, condition, dependent_variable, limit_dependent_var, change_rate_dep_var)
-    
+%% Function is a helper function to run the analysis with normal cochlear 
+%% (control) parameters AND alteredn cochlear (degraded) parameters
+function [nsimArray_ref, ssimArray_ref, varArray_ref, nsimArray_degraded, ssimArray_degraded, varArray_degraded] ...
+    = wrapper(bm, cihc, cohc, num_cf, condition, dependent_variable, limit_dependent_var, change_rate_dep_var)
+
+    % WRAPPER runs run_analysis for healthy and altered parameters
+    % 
+    %   Usage: [nsimArray, ssimArray, varArray] = run_analysis(numCF_input, condition_input, dependent_var_input, limit_input, stepper_input, status_input, varargin)
+    %
+    %   Input parameters:basilar membrane tuning, 1 = normal, > 1 = broader 
+    %       bm:                     basilar membrane tuning, 1 = normal, > 1 = broader
+    %       cihc:                   innerhair cell function scaling factor: 1 denotes normal function
+    %       cohc:                   outerhair cell function scaling factor: 1 denotes normal function
+    %       num_cf:                 limit of dependent variable
+    %       condition:              IMAP task
+    %       dependent_variable:     start value for dependent var (tonefrequency/dB SPL level)
+    %       limit_dependent_var:    limit of dependent variable
+    %       change_rate_dep_var:    rate of change for dependent var
+    %
+    %   Output parameters:
+    %       nsimArray ref:          neurogram similarity index values [0 - 1]
+    %       ssimArray ref:          neurogram similarity index values [0 - 1]
+    %       varArray ref:           dependent var values 
+    %       nsimArray deg:          neurogram similarity index values [0 - 1]
+    %       ssimArray deg:          neurogram similarity index values [0 - 1]
+    %       varArray deg:           dependent var values 
     status = 1;
     
     [nsimArray_ref, ssimArray_ref, varArray_ref] = run_analysis(num_cf, ...
@@ -203,6 +231,8 @@ function wrapper(bm, cihc, cohc, num_cf, condition, dependent_variable, limit_de
         condition, dependent_variable, limit_dependent_var, change_rate_dep_var, status, bm, cihc, cohc);
 end 
 
+
+%% example usage===========================================================
 bm = 3;
 cohc = 1;
 cihc = 1;
@@ -213,5 +243,6 @@ limit_dependent_var = 1500;
 change_rate_dep_var = 10;
 title_input = 'Neurogram Similarity, numCF=5, full impairment bm = 3, cihc = .3, cohc = .3';
 
-wrapper(bm, cohc, cihc, num_cf, condition, dependent_variable, limit_dependent_var, change_rate_dep_var);
+[nsimArray_ref, ssimArray_ref, varArray_ref, nsimArray_degraded, ssimArray_degraded, varArray_degraded] ...
+    = wrapper(bm, cohc, cihc, num_cf, condition, dependent_variable, limit_dependent_var, change_rate_dep_var);
 

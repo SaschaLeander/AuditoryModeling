@@ -19,7 +19,7 @@ function [r_mean, ihc, ic_sout_BE, cn_sout] = simulate_auditory_response(stim, F
     %       numH:       high spontaneous rate fibres
     %       numM:       medium spontaneous rate fibres
     %       numL:       low spontaneous rate fibres
-    %       fiber_num:  numnber of fibres
+    %       fiber_num:  number of auditory nerve fibres
     %       cohc:       OHC function scaling factor: 1 denotes normal function
     %       cihc:       IHC function scaling factor: 1 denotes normal function  
     %       BMF:        CN/IN best modulation frequency

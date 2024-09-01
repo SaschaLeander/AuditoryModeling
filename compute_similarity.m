@@ -14,7 +14,7 @@ function [nsi, ssi] = compute_similarity(neurogram_ref, neurogram_degraded, flag
         %       neurogram_ref:          neurogram output with normal cochelear parameters         
         %       neurogram_degraded:     neurogram output with degraded cochelear parameters
         %       flag:                   return 'ssi', 'nsi' or 'both' (string)
-        %       C1:                     parameters C1 for luminance (float)
+        %       C1:                     parameter C1 for luminance (float)
         %       C2:                     parameter C2 for contrast (float)
         %       C3:                     parameter C3 for structure (float)
         %   

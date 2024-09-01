@@ -5,7 +5,7 @@
 
 function manage_data(index, numCF, intensity, frequency, cihc, cohc, bm, task, competitor, nsim, ssim)
 
-    % MANAGE_DATA saves auditory modeling parameters and results to a csv file
+    % MANAGE_DATA saves cochlear parameters and analysis results to a csv file
     %
     %   Usage: manage_data(index, intensity, frequency, ihc, ohc, bm, task, competitor, nsim, ssim)
     %
