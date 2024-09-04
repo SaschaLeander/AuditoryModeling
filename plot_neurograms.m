@@ -4,6 +4,19 @@
 
 function plot_neurograms(stimulus, r_mean, ihc, ic_sout_BE, cn_sout_contra, Fs, cf)
 
+    % PLOT_NEUROGRAMS plots auditory modelling output and stimulus
+    % 
+    %   Usage: plot_neurograms(stimulus, r_mean, ihc, ic_sout_BE, cn_sout_contra, Fs, cf)     
+    %
+    %   Input parameters:
+    %       stimulus:           generated audio stimulus
+    %       r_mean:             mean firing rates of AN, CN, IC
+    %       ihc:                inner hair cell firing
+    %       ic_sout_BE:         inferior colliculus output
+    %       cn_sout_contra:     cochlear nucleus output 
+    %       Fs:                 sampling frequency
+    %       cf:                 center frequencies
+
     % re-size matrices, accounting for zero-padding within the model
     [sizeN, sizeM] = size(r_mean);
     ihc = ihc(1:sizeN, 1:sizeM);

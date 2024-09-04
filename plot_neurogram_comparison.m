@@ -1,9 +1,26 @@
-%% Function plots auditory response =======================
-
-% written by Sam Jones and Sascha Muhlinghaus(30/07/2024)
+% written by Sam Jones and Sascha Muhlinghaus(30/08/2024)
 % contact: saschamuhlinghaus@gmail.com
 
+%% Function plots two auditory stimuli as a comparison=======================
 function plot_neurogram_comparison(stimulus, r_mean, ihc, ic_sout_BE, cn_sout_contra, Fs, cf, stimulus2, r_mean2, ihc2, ic_sout_BE2, cn_sout_contra2, varArray, nsimArray, ssimArray)
+
+    
+    % PLOT_NEUROGRAM_COMPARISON plots auditory modelling output as stimulus comparison
+    % 
+    %   Usage: plot_neurogram_comparison(stimulus, r_mean, ihc, ic_sout_BE, cn_sout_contra, Fs, cf, stimulus2, r_mean2, ihc2, ic_sout_BE2, cn_sout_contra2, varArray, nsimArray, ssimArray)
+    %
+    %   Input parameters: (stimulus parameters must be provided for both stimuli)
+    %       stimulus:           generated audio stimulus
+    %       r_mean:             mean firing rates of AN, CN, IC
+    %       ihc:                inner hair cell firing
+    %       ic_sout_BE:         inferior colliculus output
+    %       cn_sout_contra:     cochlear nucleus output 
+    %
+    %       Fs:                 sampling frequency
+    %       cf:                 center frequencies
+    %       varArray:           dependent variable (freqeuncy/dB SPL)
+    %       nsimArray:          neurogram similarity index
+    %       ssimArray:          structural similarity index  
 
     % re-size matrices, accounting for zero-padding within the model
     [sizeN, sizeM] = size(r_mean);
