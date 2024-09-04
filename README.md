@@ -6,7 +6,6 @@ Tools for creating, processing and analyzing audio stimuli for auditory modeling
 --> generate_stimulus.m, simulate_auditory_response.m, plot_neurograms.m, plot_neurogram_comparison.m and manage_data.m is called in run_modelv2.m  
 
 TODO (01/09/2024): 
-- comment run_model.m and plor_neurogram_comparison.m (Sascha will do soon)
 - implement IOU for mean rate plots (add legend in plot & append to csv data file)
 - add sum of spikes to csv file
 - compute NSI/SSIM across layers (AN/CN)
